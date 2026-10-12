@@ -191,17 +191,3 @@ ChatUniTest a proposé des scénarios utiles, mais une correction manuelle étai
 ---
 
 ## 7. GitHub Actions
-
-Les huit nouveaux tests doivent être exécutés dans GitHub Actions :
-
-- 4 tests dans `PatternsChatUnitTest` ;
-- 4 tests dans `PatternsManualTest`.
-
-Résultat local actuel :
-
-```text
-PatternsChatUnitTest : 4 tests réussis
-PatternsManualTest   : 4 tests réussis
-```
-
-Le résultat de GitHub Actions sera ajouté ici après validation du pipeline.
