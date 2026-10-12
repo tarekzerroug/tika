@@ -1,105 +1,207 @@
-# Tache 2 - Tests unitaires et analyse de mutation
+# Tâche 2 — Génération et amélioration de tests avec ChatUniTest
 
-## Binome
+## 1. Classe choisie
 
-- Nom 1 : a completer
-- Nom 2 : a completer
-
-## 1. Selection des classes a tester
-
-Les classes retenues appartiennent toutes au module autorise `tika-core`, dans le package Java `org.apache.tika.mime`. Localement, ce package correspond au repertoire suivant :
+La classe choisie est :
 
 ```text
-tika-core/src/main/java/org/apache/tika/mime/
+org.apache.tika.mime.Patterns
 ```
 
-La couverture initiale a ete mesuree avec JaCoCo en executant les tests originaux du module `tika-core` :
+Elle possède déjà des tests (`PatternsTest`), mais sa couverture initiale n'est pas complète.
 
-```bash
-mvn -pl tika-core -am -Dspotless.apply.skip=true -Dspotless.check.skip=true test
-```
+### Couverture JaCoCo initiale
 
-Le rapport HTML utilise pour cette selection est :
+| Instructions | Branches | Lignes manquées |
+| ---: | ---: | ---: |
+| 84 % | 65 % | 6 / 79 |
 
-```text
-tika-core/target/site/jacoco/org.apache.tika.mime/index.html
-```
+Les méthodes principalement visées sont `add(...)`, `matches(String)`, `compile(String)` et `LengthComparator.compare(...)`.
 
-### Classes choisies
+### PIT initial
 
-Les valeurs ci-dessous sont recopiees depuis le rapport HTML JaCoCo, page `org.apache.tika.mime`. La colonne `Cov. instructions` correspond au premier `Cov.` affiche par JaCoCo, et la colonne `Cov. branches` correspond au deuxieme `Cov.`.
-
-| Classe | Fichier | Tests originaux existants | Cov. instructions | Cov. branches | Lignes manquees / lignes totales | Methodes manquees / methodes totales | Justification |
-| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
-| `MediaType` | `tika-core/src/main/java/org/apache/tika/mime/MediaType.java` | `MediaTypeTest` | 79 % | 74 % | 30 / 156 | 6 / 28 | Classe publique centrale pour la creation, la normalisation et l'analyse des types MIME. Elle est deja testee, mais le rapport HTML indique encore des lignes, branches et methodes non couvertes. |
-| `Patterns` | `tika-core/src/main/java/org/apache/tika/mime/Patterns.java` | `PatternsTest` | 84 % | 65 % | 6 / 79 | 0 / 8 | Classe responsable de l'association entre patrons de noms de fichiers et types MIME. Elle est deja testee, mais le rapport HTML indique encore des lignes et branches non couvertes. |
-| `MimeType` | `tika-core/src/main/java/org/apache/tika/mime/MimeType.java` | `MimeTypesReaderTest`, `MimeDetectionTest`, `PatternsTest` | 62 % | 35 % | 29 / 103 | 5 / 30 | Classe representant un type MIME complet. Elle est deja exercee indirectement par plusieurs tests du package MIME, mais le rapport HTML indique encore une couverture de branches faible. |
-
-### Methodes et comportements vises
-
-Pour `MediaType`, les tests generes devront viser principalement :
-
-- `parse(String)` : chaines valides, invalides, avec espaces, avec parametres et avec `charset` place avant le type MIME.
-- `getBaseType()`, `getType()`, `getSubtype()`, `hasParameters()` et `getParameters()` : verification de la decomposition du type MIME.
-- Les constructeurs avec parametres : normalisation des cles, tri des parametres et echappement des valeurs speciales.
-- `equals`, `hashCode` et `compareTo` : coherence entre egalite, representation textuelle et ordre naturel.
-
-Pour `Patterns`, les tests generes devront viser principalement :
-
-- `add(String, MimeType)` et `add(String, boolean, MimeType)` : ajout de noms exacts, extensions, glob patterns et expressions regulieres Java.
-- `matches(String)` : priorite entre nom exact, extension la plus longue et glob pattern.
-- Les cas d'erreur : patron nul, type MIME nul, nom nul et conflits entre patrons associes a des types incompatibles.
-
-Pour `MimeType`, les tests generes devront viser principalement :
-
-- `isValid(String)` : noms valides, noms sans slash, slash au debut ou a la fin, caracteres interdits et caracteres non ASCII.
-- `getExtension()` et `getExtensions()` : absence d'extension, extension unique, plusieurs extensions et preservation de l'ordre.
-- `setDescription`, `setAcronym`, `setUniformTypeIdentifier` et `addLink` : refus des valeurs nulles et conservation des valeurs valides.
-- `matchesMagic(byte[])`, `matches(byte[])`, `hasMagic()` et `matchesXML(...)` : comportements vrais/faux selon les donnees configurees.
-
-
-
-### Verification des mutants vivants
-
-La presence de mutants vivants a ete verifiee avec PIT sur les tests originaux. Les trois classes ont des mutants vivants, ce qui confirme qu'elles sont pertinentes pour la generation de tests supplementaires.
-
-## 2. Analyse PIT avec les tests originaux
-
-PIT a ete ajoute au module `tika-core` avec le plugin Maven `org.pitest:pitest-maven` et le plugin JUnit 5 `org.pitest:pitest-junit5-plugin`.
-
-Commande executee depuis `tika-core` :
+Commande :
 
 ```bash
 mvn -Dspotless.apply.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -DskipITs=true test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
-Rapport genere :
+Résultat :
 
-```text
-tika-core/target/pit-reports/index.html
+| Mutants | Tués | Survivants | Sans couverture | Mutation coverage |
+| ---: | ---: | ---: | ---: | ---: |
+| 48 | 31 | 10 | 7 | 65 % |
+
+La classe possède donc une couverture incomplète et des mutants vivants, ce qui justifie son choix.
+
+---
+
+## 2. Intégration de ChatUniTest
+
+ChatUniTest `2.1.1` a été ajouté au `pom.xml` de `tika-core`.
+
+Le modèle utilisé est `code-llama`, exécuté localement avec Ollama :
+
+```xml
+<properties>
+    <chatunitest.model>code-llama</chatunitest.model>
+    <chatunitest.url>http://localhost:11434/v1/chat/completions</chatunitest.url>
+</properties>
 ```
 
-Resultat global pour les classes selectionnees :
+Génération des tests :
 
-| Nombre de classes | Couverture de lignes | Couverture de mutation | Test strength |
-| ---: | ---: | ---: | ---: |
-| 3 | 80 % (295 / 368) | 63 % (147 / 235) | 89 % (147 / 165) |
+```bash
+mvn chatunitest:class -DselectClass=org.apache.tika.mime.Patterns
+```
 
-Resultat par classe :
+ChatUniTest termine correctement la génération :
 
-| Classe | Couverture de mutation | Mutants generes | Mutants tues | Mutants vivants | Mutants sans couverture | Justification |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `MediaType` | 78 % (66 / 85) | 85 | 66 | 3 | 16 | PIT confirme que les tests originaux ne detectent pas tous les changements artificiels. Les mutants vivants touchent notamment `parse`, `isSimpleName` et `union`. |
-| `Patterns` | 65 % (31 / 48) | 48 | 31 | 10 | 7 | PIT confirme plusieurs mutants vivants dans la gestion des patrons, notamment `add`, `matches`, `compile` et `LengthComparator.compare`. |
-| `MimeType` | 49 % (50 / 102) | 102 | 50 | 5 | 47 | PIT confirme des mutants vivants dans des comportements comme `hasRootXML`, `hasMagic` et `compareTo`. Plusieurs mutants sont aussi sans couverture, surtout dans `isValid` et `matchesMagic`. |
+```text
+[CHATUNITEST] Generation finished
+[CHATUNITEST] Test processed
+[INFO] BUILD SUCCESS
+```
 
-Exemples de mutants vivants observes :
+Les sorties brutes sont conservées dans :
 
-- `MediaType.parse`, ligne 260 : mutation arithmetique survivante.
-- `MediaType.isSimpleName`, ligne 293 : retour booleen force a `false` survivant.
-- `Patterns.matches`, ligne 153 : mutation de borne conditionnelle survivante.
-- `Patterns.compile`, ligne 179 : negation de condition survivante.
-- `MimeType.hasRootXML`, ligne 268 : plusieurs mutations de retour booleen survivantes.
-- `MimeType.hasMagic`, ligne 294 : retour booleen force a `true` survivant.
+```text
+chatunitest-generated/Patterns/
+```
 
-Ces resultats montrent que les tests originaux sont insuffisants pour tuer tous les mutants. Les classes choisies satisfont donc le critere : elles ne sont pas totalement couvertes par JaCoCo et elles possedent des mutants vivants dans le rapport PIT initial.
+---
+
+## 3. Tests générés et critique
+
+Les tests générés automatiquement ne compilaient pas directement.
+
+Les principaux problèmes observés étaient :
+
+- accès aux attributs privés (`names`, `extensions`, `globs`) ;
+- données manquantes avant certains appels à `matches()` ;
+- mauvaise interprétation de certains patterns ;
+- oracles incorrects.
+
+Par exemple, ChatUniTest supposait que :
+
+```java
+patterns.matches(null);
+```
+
+retournait `null`, alors que la méthode lève une `IllegalArgumentException`.
+
+Quatre scénarios ont été retenus et corrigés :
+
+| Test | Objectif |
+| --- | --- |
+| `testMatchesExactName` | Nom exact |
+| `testMatchesExtension` | Extension |
+| `testAddGlobPattern` | Glob pattern |
+| `testMatchesNullName` | Argument `null` |
+
+Ils se trouvent dans :
+
+```text
+src/test/java/org/apache/tika/mime/PatternsChatUnitTest.java
+```
+
+Les corrections ont principalement consisté à supprimer les accès privés, préparer correctement les données, corriger les patterns et corriger les résultats attendus.
+
+Après correction :
+
+```text
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+```
+
+---
+
+## 4. Analyse PIT après ChatUniTest
+
+PIT a été relancé après l'ajout des quatre tests corrigés.
+
+| Mesure | Tests originaux | + ChatUniTest |
+| --- | ---: | ---: |
+| Mutants générés | 48 | 48 |
+| Mutants tués | 31 | 38 |
+| Survivants | 10 | 4 |
+| Sans couverture | 7 | 6 |
+| Mutation coverage | 65 % | 79 % |
+
+Les tests ChatUniTest permettent donc de tuer **7 mutants supplémentaires**.
+
+PIT attribue notamment :
+
+- `testMatchesExactName` → mutations dans `add()`, `addName()` et `matches()` ;
+- `testMatchesExtension` → mutations dans `add()` et `matches()` ;
+- `testAddGlobPattern` → mutations dans `add()`, `addGlob()`, `compile()` et `matches()`.
+
+Ces mutants sont détectés car les tests vérifient le résultat observable : si une mutation empêche l'ajout, la compilation ou la reconnaissance d'un pattern, l'assertion échoue.
+
+`testMatchesNullName` vérifie le comportement avec `null`, mais PIT ne lui attribue pas directement de mutant tué.
+
+---
+
+## 5. Tests supplémentaires manuels
+
+Après ChatUniTest, quatre mutants avaient encore le statut `SURVIVED`.
+
+Quatre tests manuels ont été ajoutés dans :
+
+```text
+src/test/java/org/apache/tika/mime/PatternsManualTest.java
+```
+
+| Test | Objectif |
+| --- | --- |
+| `testExplicitJavaRegex` | Expression régulière explicite |
+| `testQuestionMarkPattern` | Pattern contenant `?` |
+| `testBracketPattern` | Pattern contenant `[` |
+| `testLongerGlobHasPriority` | Priorité entre glob patterns |
+
+Résultat :
+
+```text
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Après ces tests :
+
+```text
+Line Coverage: 80/84 (95%)
+Generated 48 mutations Killed 41 (85%)
+Mutations with no coverage 6
+Test strength 98%
+```
+
+Les tests manuels tuent donc **3 mutants supplémentaires**.
+
+---
+
+## 6. Résultats finaux
+
+| Étape | Mutants tués | Mutation coverage |
+| --- | ---: | ---: |
+| Tests originaux | 31 / 48 | 65 % |
+| + ChatUniTest | 38 / 48 | 79 % |
+| + tests manuels | 41 / 48 | 85 % |
+
+ChatUniTest a proposé des scénarios utiles, mais une correction manuelle était nécessaire. L'utilisation de PIT a ensuite permis de cibler les faiblesses restantes avec des tests supplémentaires.
+
+---
+
+## 7. GitHub Actions
+
+Les huit nouveaux tests doivent être exécutés dans GitHub Actions :
+
+- 4 tests dans `PatternsChatUnitTest` ;
+- 4 tests dans `PatternsManualTest`.
+
+Résultat local actuel :
+
+```text
+PatternsChatUnitTest : 4 tests réussis
+PatternsManualTest   : 4 tests réussis
+```
+
+Le résultat de GitHub Actions sera ajouté ici après validation du pipeline.

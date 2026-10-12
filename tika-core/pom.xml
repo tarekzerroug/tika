@@ -34,6 +34,11 @@
   <name>Apache Tika core</name>
   <url>https://tika.apache.org/</url>
 
+  <properties>
+    <chatunitest.model>code-llama</chatunitest.model>
+    <chatunitest.url>http://localhost:11434/v1/chat/completions</chatunitest.url>
+  </properties>
+
   <dependencies>
     <!-- See https://issues.apache.org/jira/browse/TIKA-2566 for more info -->
     <dependency>
@@ -285,11 +290,8 @@
         </dependencies>
         <configuration>
           <targetClasses>
-            <param>org.apache.tika.mime.MediaType</param>
             <param>org.apache.tika.mime.Patterns</param>
             <param>org.apache.tika.mime.Patterns$*</param>
-            <param>org.apache.tika.mime.MimeType</param>
-            <param>org.apache.tika.mime.MimeType$*</param>
           </targetClasses>
           <targetTests>
             <param>org.apache.tika.mime.*Test</param>
@@ -302,6 +304,26 @@
           </outputFormats>
           <timestampedReports>false</timestampedReports>
           <threads>4</threads>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.github.zju-aces-ise</groupId>
+        <artifactId>chatunitest-maven-plugin</artifactId>
+        <version>2.1.1</version>
+        <configuration>
+          <apiKeys>ollama</apiKeys>
+          <model>${chatunitest.model}</model>
+          <url>${chatunitest.url}</url>
+          <testNumber>1</testNumber>
+          <maxRounds>1</maxRounds>
+          <enableMultithreading>false</enableMultithreading>
+          <maxThreads>1</maxThreads>
+          <maxResponseTokens>512</maxResponseTokens>
+          <temperature>0.2</temperature>
+          <tmpOutput>${project.build.directory}/chatunitest-info</tmpOutput>
+          <testOutput>${project.basedir}/chatunitest</testOutput>
+          <merge>true</merge>
+          <stopWhenSuccess>true</stopWhenSuccess>
         </configuration>
       </plugin>
       <plugin>
