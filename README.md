@@ -1,250 +1,362 @@
-Welcome to Apache Tika  <https://tika.apache.org/>
-=================================================
+# Tâche 2 — Génération et amélioration de tests avec ChatUniTest
 
-[![license](https://img.shields.io/github/license/apache/tika.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Jenkins](https://img.shields.io/jenkins/s/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/)
-[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/lastBuild/testReport/)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.tika/tika.svg?maxAge=86400)](http://search.maven.org/#search|ga|1|g%3A%22org.apache.tika%22)
+## 1. Classe choisie
 
-Apache Tika(TM) is a toolkit for detecting and extracting metadata and structured text content from various documents using existing parser libraries.
+La classe choisie est :
 
-Tika is a project of the [Apache Software Foundation](https://www.apache.org).
+```text
+org.apache.tika.mime.Patterns
+```
 
-Apache Tika, Tika, Apache, the Apache feather logo, and the Apache Tika project logo are trademarks of The Apache Software Foundation.
+Elle possède déjà des tests (`PatternsTest`), mais sa couverture initiale n'est pas complète.
 
-Quick Start
-===========
+### Couverture JaCoCo initiale
 
-**Parse a file in Java:**
+| Instructions | Branches | Lignes manquées |
+| ---: | ---: | ---: |
+| 84 % | 65 % | 6 / 79 |
+
+Les méthodes principalement visées sont `add(...)`, `matches(String)`, `compile(String)` et `LengthComparator.compare(...)`.
+
+### PIT initial
+
+Commande :
+
+```bash
+mvn -Dspotless.apply.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -DskipITs=true test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
+Résultat :
+
+| Mutants | Tués | Survivants | Sans couverture | Mutation coverage |
+| ---: | ---: | ---: | ---: | ---: |
+| 48 | 31 | 10 | 7 | 65 % |
+
+La classe possède donc une couverture incomplète et des mutants vivants, ce qui justifie son choix.
+
+---
+
+## 2. Intégration de ChatUniTest
+
+ChatUniTest `2.1.1` a été ajouté au `pom.xml` de `tika-core`.
+
+Le modèle utilisé est `code-llama`, exécuté localement avec Ollama :
+
+```xml
+<properties>
+    <chatunitest.model>code-llama</chatunitest.model>
+    <chatunitest.url>http://localhost:11434/v1/chat/completions</chatunitest.url>
+</properties>
+```
+
+Génération des tests :
+
+```bash
+mvn chatunitest:class -DselectClass=org.apache.tika.mime.Patterns
+```
+
+ChatUniTest termine correctement la génération :
+
+```text
+[CHATUNITEST] Generation finished
+[CHATUNITEST] Test processed
+[INFO] BUILD SUCCESS
+```
+
+Les sorties brutes sont conservées dans :
+
+```text
+chatunitest-generated/Patterns/
+```
+
+---
+
+## 3. Tests générés et critique
+
+Les tests générés automatiquement ne compilaient pas directement.
+
+Les principaux problèmes observés étaient :
+
+- accès aux attributs privés (`names`, `extensions`, `globs`) ;
+- données manquantes avant certains appels à `matches()` ;
+- mauvaise interprétation de certains patterns ;
+- oracles incorrects.
+
+Par exemple, ChatUniTest supposait que :
 
 ```java
-import org.apache.tika.Tika;
-
-Tika tika = new Tika();
-String text = tika.parseToString(new File("document.pdf"));
-System.out.println(text);
+patterns.matches(null);
 ```
 
-**From the command line:**
+retournait `null`, alors que la méthode lève une `IllegalArgumentException`.
 
-```bash
-java -jar tika-app-*.jar --text document.pdf
+Quatre scénarios ont été retenus et corrigés :
+
+| Test | Objectif |
+| --- | --- |
+| `testMatchesExactName` | Nom exact |
+| `testMatchesExtension` | Extension |
+| `testAddGlobPattern` | Glob pattern |
+| `testMatchesNullName` | Argument `null` |
+
+Ils se trouvent dans :
+
+```text
+src/test/java/org/apache/tika/mime/PatternsChatUnitTest.java
 ```
 
-**Maven dependency:**
+Les corrections ont principalement consisté à supprimer les accès privés, préparer correctement les données, corriger les patterns et corriger les résultats attendus.
 
-```xml
-<dependency>
-    <groupId>org.apache.tika</groupId>
-    <artifactId>tika-parsers-standard-package</artifactId>
-    <version>4.x.y</version>
-    <type>pom</type>
-</dependency>
+Après correction :
+
+```text
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
 ```
 
-Getting Started
-===============
-Pre-built binaries of Apache Tika standalone applications are available
-from https://tika.apache.org/download.html . Pre-built binaries of all the
-Tika jars can be fetched from Maven Central or your favourite Maven mirror.
+---
 
-**Tika 2.X and support for Java 8 reached End of Life (EOL) in April, 2025. 
-See [Tika Roadmap 2.x, 3.x and beyond](https://cwiki.apache.org/confluence/display/TIKA/Tika+Roadmap+--+2.x%2C+3.x+and+Beyond).** 
+## 4. Analyse PIT après ChatUniTest
 
-Tika is based on **Java 17** and uses the [Maven 3](https://maven.apache.org) build system.
-**N.B.** [Docker](https://www.docker.com/products/personal) is used for tests in tika-integration-tests. If Docker is not installed, those tests are skipped.
+PIT a été relancé après l'ajout des quatre tests corrigés.
 
-To build Tika from source, use the following command in the main directory:
+| Mesure | Tests originaux | + ChatUniTest |
+| --- | ---: | ---: |
+| Mutants générés | 48 | 48 |
+| Mutants tués | 31 | 38 |
+| Survivants | 10 | 4 |
+| Sans couverture | 7 | 6 |
+| Mutation coverage | 65 % | 79 % |
 
-    ./mvnw clean install
+Les tests ChatUniTest permettent donc de tuer **7 mutants supplémentaires**.
 
-The Maven wrapper (`mvnw`) is included in the repository and will automatically download
-the correct Maven version if needed. On Windows, use `mvnw.cmd` instead.
+PIT attribue notamment :
 
-The build consists of a number of components, including a standalone runnable jar that you can use to try out Tika features. You can run it like this:
+- `testMatchesExactName` → mutations dans `add()`, `addName()` et `matches()` ;
+- `testMatchesExtension` → mutations dans `add()` et `matches()` ;
+- `testAddGlobPattern` → mutations dans `add()`, `addGlob()`, `compile()` et `matches()`.
 
-    java -jar tika-app/target/tika-app-*.jar --help
+Ces mutants sont détectés car les tests vérifient le résultat observable : si une mutation empêche l'ajout, la compilation ou la reconnaissance d'un pattern, l'assertion échoue.
 
+`testMatchesNullName` vérifie le comportement avec `null`, mais PIT ne lui attribue pas directement de mutant tué.
 
-To build a specific project (for example, tika-server-standard):
+---
 
-    ./mvnw clean install -am -pl :tika-server-standard
+## 5. Tests supplémentaires manuels
 
-If the ossindex-maven-plugin is causing the build to fail because a dependency
-has now been discovered to have a vulnerability:
+Après ChatUniTest, quatre mutants avaient encore le statut `SURVIVED`.
 
-    ./mvnw clean install -Dossindex.skip
+Quatre tests manuels ont été ajoutés dans :
 
-
-Faster Builds
-=============
-
-**Fast profile** - Use `-Pfast` to skip tests, checkstyle, and spotless:
-
-    ./mvnw clean install -Pfast
-
-**Parallel builds** - Add `-T1C` to build with 1 thread per CPU core:
-
-    ./mvnw clean install -Pfast -T1C
-
-**Maven Daemon (mvnd)** - Keeps a warm JVM running for 2-3x faster rebuilds:
-
-```bash
-# Install: https://github.com/apache/maven-mvnd
-# macOS: brew install mvndaemon/tap/mvnd
-
-# Use exactly like mvn
-mvnd clean install -Pfast
-mvnd test -pl :tika-core
+```text
+src/test/java/org/apache/tika/mime/PatternsManualTest.java
 ```
 
-**Combine both** for maximum speed during development:
+| Test | Objectif |
+| --- | --- |
+| `testExplicitJavaRegex` | Expression régulière explicite |
+| `testQuestionMarkPattern` | Pattern contenant `?` |
+| `testBracketPattern` | Pattern contenant `[` |
+| `testLongerGlobHasPriority` | Priorité entre glob patterns |
 
-    mvnd clean install -Pfast -T1C
+Résultat :
 
-
-Reproducible Builds
-===================
-
-Apache Tika supports [reproducible builds](https://reproducible-builds.org/). This means
-that building the same source code with the same JDK version should produce
-byte-for-byte identical artifacts, regardless of the build machine or time.
-
-Key configuration:
-- `project.build.outputTimestamp` is set in `tika-parent/pom.xml`
-- All Maven plugins are configured to produce deterministic output
-
-To verify the build plan supports reproducibility:
-
-    ./mvnw artifact:check-buildplan
-
-To verify two builds produce identical artifacts:
-
-    ./mvnw clean install -DskipTests
-    mv ~/.m2/repository/org/apache/tika tika-build-1
-    ./mvnw clean install -DskipTests
-    diff -r tika-build-1 ~/.m2/repository/org/apache/tika
-
-
-Maven Dependencies
-==================
-
-Apache Tika provides *Bill of Material* (BOM) artifact to align Tika module versions and simplify version management. 
-To avoid convergence errors in your own project, import this
-bom or Tika's parent pom.xml in your dependency management section.
-
-If you use Apache Maven:
-
-```xml
-<project>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-       <groupId>org.apache.tika</groupId>
-       <artifactId>tika-bom</artifactId>
-       <version>4.x.y</version>
-       <type>pom</type>
-       <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers-standard-package</artifactId>
-      <type>pom</type>
-      <!-- version not required since BOM included -->
-    </dependency>
-  </dependencies>
-</project>
+```text
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
 ```
 
-For Gradle:
+Après ces tests :
 
-```kotlin
-dependencies {
-  implementation(platform("org.apache.tika:tika-bom:4.x.y"))
-
-  // version not required since bom (platform in Gradle terms)
-  implementation("org.apache.tika:tika-parsers-standard-package@pom")
-}
+```text
+Line Coverage: 80/84 (95%)
+Generated 48 mutations Killed 41 (85%)
+Mutations with no coverage 6
+Test strength 98%
 ```
 
-Migrating to 4.x
-================
-TBD
+Les tests manuels tuent donc **3 mutants supplémentaires**.
 
-Contributing
-============
-See [CONTRIBUTING.md](CONTRIBUTING.md) and https://tika.apache.org/contribute.html
+---
 
-[![contributors](https://contributors-img.web.app/image?repo=apache/tika)](https://github.com/apache/tika/graphs/contributors)
+## 6. Résultats finaux
 
-Building from a Specific Tag
-============================
-Let's assume that you want to build the 3.0.1 tag:
-```
-0. Download and install hub.github.com
-1. git clone https://github.com/apache/tika.git
-2. cd tika
-3. git checkout 3.0.1
-4. ./mvnw clean install
-```
+| Étape | Mutants tués | Mutation coverage |
+| --- | ---: | ---: |
+| Tests originaux | 31 / 48 | 65 % |
+| + ChatUniTest | 38 / 48 | 79 % |
+| + tests manuels | 41 / 48 | 85 % |
 
-If a new vulnerability has been discovered between the date of the
-tag and the date you are building the tag, you may need to build with:
+ChatUniTest a proposé des scénarios utiles, mais une correction manuelle était nécessaire. L'utilisation de PIT a ensuite permis de cibler les faiblesses restantes avec des tests supplémentaires.
 
-```
-4. ./mvnw clean install -Dossindex.skip
-```
+## 7. GitHub Actions
 
-If a local test is not working in your environment, please notify
- the project at dev@tika.apache.org. As an immediate workaround,
- you can turn off individual tests with e.g.:
 
-```
-4. ./mvnw clean install -Dossindex.skip -Dtest=\!UnpackerResourceTest#testPDFImages
+
+-------------
+
+
+
+## 8. Travail complémentaire — classe `MediaType`
+
+### Classe choisie
+
+La classe choisie est :
+
+```text
+org.apache.tika.mime.MediaType
 ```
 
-License (see also LICENSE.txt)
-==============================
+Cette classe possède déjà des tests (`MediaTypeTest`), mais sa couverture initiale n'est pas complète.
 
-Collective work: Copyright 2011 The Apache Software Foundation.
+### Couverture JaCoCo initiale
 
-Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
+| Instructions | Branches | Lignes manquées |
+| ---: | ---: | ---: |
+| 79 % | 74 % | 30 / 156 |
 
-<https://www.apache.org/licenses/LICENSE-2.0>
+### PIT initial
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
+| Mutants | Tués | Survivants | Sans couverture | Mutation coverage |
+| ---: | ---: | ---: | ---: | ---: |
+| 85 | 66 | 3 | 16 | 78 % |
 
-Apache Tika includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the licenses listed in the LICENSE.txt file.
+Nous avons notamment ciblé `hasParameters()`, qui n'avait pas d'assertions directes dans les tests originaux.
 
-Export Control
-==============
+---
 
-This distribution includes cryptographic software.  The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software.  BEFORE using any encryption software, please  check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to  see if this is permitted.  See <http://www.wassenaar.org/> for more information.
+## 8. Génération avec ChatUniTest pour `MediaType`
 
-The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS), has classified this software as Export Commodity Control Number (ECCN) 5D002.C.1, which includes information security software using or performing cryptographic functions with asymmetric algorithms.  The form and manner of this Apache Software Foundation distribution makes it eligible for export under the License Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS Export Administration Regulations, Section 740.13) for both object code and source code.
+ChatUniTest `2.1.1` a été utilisé avec Ollama et le modèle local `codeqwen:v1.5-chat`.
 
-The following provides more details on the included cryptographic software:
+La première tentative, sur toute la classe `MediaType`, a duré environ 30 minutes. ChatUniTest a tenté de générer 11 méthodes de test, mais aucune n'a été validée automatiquement : 9 erreurs de compilation et 2 erreurs d'extraction.
 
-Apache Tika uses the Bouncy Castle generic encryption libraries for extracting text content and metadata from encrypted PDF files.  See <http://www.bouncycastle.org/> for more details on Bouncy Castle.  
+Une deuxième tentative a ensuite ciblé `hasParameters()`. Cette tentative a duré environ 10 minutes, mais les deux essais de compilation ont également échoué.
 
-Mailing Lists
-=============
+Les tests générés utilisaient notamment Mockito (`@Mock`, `MockitoExtension`, `when(...)`), ce qui provoquait des erreurs dans la configuration du projet.
 
-* user@tika.apache.org - About using Tika
-* dev@tika.apache.org - About developing Tika
+Les journaux d'erreur ont été enregistrés dans :
 
-Subscribe by sending a message to `{list}-subscribe@tika.apache.org`.
+```text
+C:\tmp\chatunitest-info\tika-parent\tika-core\error-message\
+```
 
-Issue Tracker
-=============
+---
 
-https://issues.apache.org/jira/browse/TIKA
+## 9. Tests générés pour `MediaType` et critique des oracles
 
-Security
-========
+Deux scénarios proposés par ChatUniTest ont été retenus, puis réécrits manuellement. Les principales corrections ont consisté à supprimer les mocks Mockito, à créer de vrais objets `MediaType` et à utiliser des assertions sur leur comportement réel.
 
-See [SECURITY.md](SECURITY.md) and https://tika.apache.org/security.html
+| Test | Objectif |
+| --- | --- |
+| `testHasParametersTrue` | Vérifier que `hasParameters()` retourne `true` lorsqu'il y a des paramètres |
+| `testHasParametersFalse` | Vérifier que `hasParameters()` retourne `false` lorsqu'il n'y a aucun paramètre |
+
+Le premier test utilise `charset=UTF-8`, tandis que le deuxième utilise un type MIME sans paramètres.
+
+Les oracles `assertTrue()` et `assertFalse()` proposés étaient adaptés à une méthode booléenne. Cependant, les mocks utilisés par ChatUniTest ne vérifiaient pas directement la logique de `MediaType`. Les tests originaux, eux, vérifiaient des valeurs concrètes après les opérations.
+
+Après correction, les deux tests ont réussi :
+
+```text
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Aucun test généré n'a donc fonctionné sans intervention manuelle.
+
+---
+
+## 10. Analyse PIT après ChatUniTest pour `MediaType`
+
+| Mesure | Tests originaux | + ChatUniTest corrigé |
+| --- | ---: | ---: |
+| Mutants générés | 85 | 85 |
+| Mutants tués | 66 | 66 |
+| Survivants | 3 | 3 |
+| Sans couverture | 16 | 16 |
+| Mutation coverage | 78 % | 78 % |
+
+Les deux tests corrigés n'ont pas éliminé de mutants supplémentaires.
+
+Trois mutants restaient survivants :
+
+- **Ligne 260 (`MathMutator`)** : modification de `slash + 1` dans `parse()`.
+- **Ligne 293 (`BooleanFalseReturnValsMutator`)** : `isSimpleName()` retourne toujours `false`.
+- **Ligne 349 (`NegateConditionalsMutator`)** : inversion d'une condition dans `union()`.
+
+Les deux premiers peuvent modifier le chemin d'exécution de `parse()` sans nécessairement changer le résultat. Le troisième peut modifier la fusion des paramètres.
+
+---
+
+## 11. Tests supplémentaires manuels pour `MediaType`
+
+Quatre tests ont été ajoutés dans :
+
+```text
+MediaTypeMutationTest.java
+```
+
+| Test | Objectif |
+| --- | --- |
+| `testUnionPreservesExistingAndNewParameters` | Vérifier que la fusion conserve les paramètres `charset=UTF-8` et `version=1` |
+| `testParseSimpleMediaType` | Vérifier qu'un type MIME simple comme `application/json` est correctement analysé |
+| `testParseSimpleNameWithValidCharacters` | Vérifier qu'un sous-type contenant des lettres, des chiffres et un trait d'union est reconnu |
+| `testParseCachesSimpleMediaTypes` | Vérifier que deux appels à `parse()` sur le même type simple retournent la même instance |
+
+Le test `testUnionPreservesExistingAndNewParameters` vérifie les deux valeurs de paramètres et le nombre total de paramètres avec `assertEquals()`.
+
+Le test `testParseSimpleMediaType` vérifie le type, le sous-type et la représentation complète.
+
+Le test `testParseSimpleNameWithValidCharacters` utilise `application/x-test123` et compare les résultats aux valeurs attendues.
+
+Le test `testParseCachesSimpleMediaTypes` analyse deux fois `application/x-ift3913-cache-test-2026`, une valeur spécifique choisie pour limiter les collisions avec d'autres tests. L'assertion `assertSame()` vérifie que les deux appels retournent la même instance.
+
+Le premier test a permis d'éliminer le mutant de `union()` à la ligne 349. Les trois autres visaient `parse()` et son mécanisme de cache, mais les deux mutants restants n'ont pas été éliminés.
+
+Les quatre tests ont réussi :
+
+```text
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+---
+
+## 12. Résultats finaux pour `MediaType`
+
+| Étape | Mutants tués | Mutation coverage |
+| --- | ---: | ---: |
+| Tests originaux | 66 / 85 | 78 % |
+| + ChatUniTest corrigé | 66 / 85 | 78 % |
+| + tests manuels | 71 / 85 | 84 % |
+
+Après l'ajout des tests manuels, la couverture de mutation est passée de **78 % à 84 %**, soit cinq mutants supplémentaires éliminés. La couverture des lignes est passée de 80 % à 83 %, et le nombre de mutants sans couverture est passé de 16 à 12.
+
+Le mutant de `union()` à la ligne 349 a été éliminé. Les deux mutants de `parse()` aux lignes 260 et 293 survivent toujours malgré les tests ajoutés. Ils semblent surtout toucher le chemin optimisé de `parse()` sans modifier le résultat pour les entrées testées.
+
+ChatUniTest a proposé des scénarios utiles, mais des corrections manuelles ont été nécessaires. L'amélioration du score de mutation vient des tests manuels ajoutés après l'analyse PIT.
+
+### Commandes utilisées
+
+Exécution des tests corrigés de ChatUniTest :
+
+```powershell
+.\mvnw.cmd -pl tika-core "-Dtest=MediaTypeChatUniTestTest" test
+```
+
+Exécution des tests manuels :
+
+```powershell
+.\mvnw.cmd -pl tika-core "-Dtest=MediaTypeMutationTest" test
+```
+
+Analyse de mutation avec PIT :
+
+```powershell
+.\mvnw.cmd -pl tika-core "-DtargetClasses=org.apache.tika.mime.MediaType" org.pitest:pitest-maven:1.19.4:mutationCoverage
+```
+
+---
+
+## 13. GitHub Actions
+
