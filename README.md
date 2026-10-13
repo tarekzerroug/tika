@@ -188,15 +188,8 @@ Les tests manuels tuent donc **3 mutants supplémentaires**.
 
 ChatUniTest a proposé des scénarios utiles, mais une correction manuelle était nécessaire. L'utilisation de PIT a ensuite permis de cibler les faiblesses restantes avec des tests supplémentaires.
 
-## 7. GitHub Actions
 
-
-
--------------
-
-
-
-## 8. Travail complémentaire — classe `MediaType`
+## 1. Travail complémentaire — classe `MediaType`
 
 ### Classe choisie
 
@@ -224,7 +217,7 @@ Nous avons notamment ciblé `hasParameters()`, qui n'avait pas d'assertions dire
 
 ---
 
-## 8. Génération avec ChatUniTest pour `MediaType`
+## 2. Génération avec ChatUniTest pour `MediaType`
 
 ChatUniTest `2.1.1` a été utilisé avec Ollama et le modèle local `codeqwen:v1.5-chat`.
 
@@ -242,7 +235,7 @@ C:\tmp\chatunitest-info\tika-parent\tika-core\error-message\
 
 ---
 
-## 9. Tests générés pour `MediaType` et critique des oracles
+## 3. Tests générés pour `MediaType` et critique des oracles
 
 Deux scénarios proposés par ChatUniTest ont été retenus, puis réécrits manuellement. Les principales corrections ont consisté à supprimer les mocks Mockito, à créer de vrais objets `MediaType` et à utiliser des assertions sur leur comportement réel.
 
@@ -266,7 +259,7 @@ Aucun test généré n'a donc fonctionné sans intervention manuelle.
 
 ---
 
-## 10. Analyse PIT après ChatUniTest pour `MediaType`
+## 4. Analyse PIT après ChatUniTest pour `MediaType`
 
 | Mesure | Tests originaux | + ChatUniTest corrigé |
 | --- | ---: | ---: |
@@ -288,7 +281,7 @@ Les deux premiers peuvent modifier le chemin d'exécution de `parse()` sans néc
 
 ---
 
-## 11. Tests supplémentaires manuels pour `MediaType`
+## 5. Tests supplémentaires manuels pour `MediaType`
 
 Quatre tests ont été ajoutés dans :
 
@@ -322,7 +315,7 @@ BUILD SUCCESS
 
 ---
 
-## 12. Résultats finaux pour `MediaType`
+## 6. Résultats finaux pour `MediaType`
 
 | Étape | Mutants tués | Mutation coverage |
 | --- | ---: | ---: |
@@ -358,5 +351,15 @@ Analyse de mutation avec PIT :
 
 ---
 
-## 13. GitHub Actions
+## 7. GitHub Actions
+
+Les tests ajoutés s'exécutent avec succès dans GitHub Actions. Les captures ci-dessous montrent que les suites ChatUniTest corrigées et les tests manuels passent avec **0 failure**, **0 error** et **0 skipped**.
+
+![Résultat GitHub Actions pour MediaTypeChatUniTestTest](docs/images/github-actions/mediatype-chatunitest-success.svg)
+
+![Résultat GitHub Actions pour MediaTypeMutationTest](docs/images/github-actions/mediatype-mutation-success.svg)
+
+![Résultat GitHub Actions pour PatternsChatUnitTest](docs/images/github-actions/patterns-chatunitest-success.svg)
+
+![Résultat GitHub Actions pour PatternsManualTest](docs/images/github-actions/patterns-manual-success.svg)
 
