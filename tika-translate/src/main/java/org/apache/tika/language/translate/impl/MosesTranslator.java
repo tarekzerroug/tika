@@ -83,8 +83,7 @@ public class MosesTranslator extends ExternalTranslator {
             out.append(text).append('\n').close();
         }
 
-        Runtime.getRuntime().exec(buildCommand(smtPath, scriptPath), new String[]{},
-                buildWorkingDirectory(scriptPath));
+        Runtime.getRuntime().exec("sh -c " + buildCommand(smtPath, scriptPath));
 
         File tmpTranslatedFile = new File(TMP_FILE_NAME + ".translated");
 
