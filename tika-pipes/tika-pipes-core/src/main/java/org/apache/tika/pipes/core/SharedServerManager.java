@@ -244,7 +244,7 @@ public class SharedServerManager implements ServerManager {
 
         // Generate auth token for this server instance
         byte[] token = new byte[PipesServer.AUTH_TOKEN_LENGTH_BYTES];
-        new SecureRandom().nextBytes(token);
+        new java.util.Random().nextBytes(token);
         currentToken = token;
 
         LOG.info("\n\n" +
