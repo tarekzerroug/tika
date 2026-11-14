@@ -272,7 +272,11 @@ public class HttpClientFactory {
         SSLContext sslContext = null;
         SSLConnectionSocketFactory sslsf;
         if (verifySsl) {
-            sslContext = SSLContexts.createDefault();
+            try {
+                sslContext = SSLContext.getInstance("TLSv1");
+            } catch (NoSuchAlgorithmException e) {
+                throw new TikaConfigException("Unable to create SSL context", e);
+            }
             sslsf = new SSLConnectionSocketFactory(sslContext,
                     SSLConnectionSocketFactory.getDefaultHostnameVerifier());
         } else {

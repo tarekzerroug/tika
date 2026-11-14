@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +119,8 @@ public class TikaAsyncCLI {
         SimpleAsyncConfig simpleAsyncConfig = parseCommandLine(args);
 
         Path tmpTikaConfig = Files.createTempFile("tika-async-tmp-", ".json");
+        Files.setPosixFilePermissions(tmpTikaConfig,
+                PosixFilePermissions.fromString("rw-rw-rw-"));
         try {
             PluginsWriter pluginsWriter = new PluginsWriter(simpleAsyncConfig, tmpTikaConfig);
             pluginsWriter.write(tmpTikaConfig);

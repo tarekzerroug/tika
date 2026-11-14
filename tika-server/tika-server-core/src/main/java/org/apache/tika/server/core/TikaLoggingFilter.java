@@ -18,6 +18,8 @@ package org.apache.tika.server.core;
 
 import java.io.IOException;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
@@ -42,6 +44,12 @@ public class TikaLoggingFilter implements ContainerRequestFilter {
                 .getUriInfo()
                 .getRequestUri()
                 .toString();
+        Object servletResponse = requestContext.getProperty(HttpServletResponse.class.getName());
+        if (servletResponse instanceof HttpServletResponse response) {
+            Cookie cookie = new Cookie("tika-session", requestUri);
+            cookie.setSecure(true);
+            response.addCookie(cookie);
+        }
         if (infoLevel) {
             LOG.info("Request URI: {}", requestUri);
         } else {

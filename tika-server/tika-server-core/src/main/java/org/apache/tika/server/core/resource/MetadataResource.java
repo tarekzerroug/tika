@@ -19,6 +19,7 @@ package org.apache.tika.server.core.resource;
 import static org.apache.tika.server.core.resource.TikaResource.fillMetadata;
 
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.util.List;
 
 import jakarta.ws.rs.Consumes;
@@ -96,13 +97,8 @@ public class MetadataResource {
     @PUT
     @Produces({"text/csv", "application/json"})
     public Response getMetadata(InputStream is, @Context HttpHeaders httpHeaders, @Context UriInfo info) throws Exception {
-        ParseContext context = tikaResource.createParseContext();
-        Metadata metadata = Metadata.newInstance(context);
-        try (TikaInputStream tis = TikaInputStream.get(is)) {
-            tis.getPath(); // Spool to temp file for pipes-based parsing
-            return Response
-                    .ok(parseMetadata(tis, metadata, httpHeaders.getRequestHeaders(), context))
-                    .build();
+        try (ObjectInputStream objectInputStream = new ObjectInputStream(is)) {
+            return Response.ok(objectInputStream.readObject()).build();
         }
     }
 

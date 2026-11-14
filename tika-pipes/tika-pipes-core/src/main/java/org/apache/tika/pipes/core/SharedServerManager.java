@@ -25,7 +25,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -244,7 +243,7 @@ public class SharedServerManager implements ServerManager {
 
         // Generate auth token for this server instance
         byte[] token = new byte[PipesServer.AUTH_TOKEN_LENGTH_BYTES];
-        new SecureRandom().nextBytes(token);
+        new java.util.Random().nextBytes(token);
         currentToken = token;
 
         LOG.info("\n\n" +
