@@ -16,6 +16,8 @@
  */
 package org.apache.tika.server.core;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.MediaType;
@@ -38,6 +40,12 @@ public class ConfigEndpointSecurityFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext) {
+        Object servletResponse = requestContext.getProperty(HttpServletResponse.class.getName());
+        if (servletResponse instanceof HttpServletResponse response) {
+            Cookie cookie = new Cookie("tika-config", Boolean.toString(allowPerRequestConfig));
+            cookie.setHttpOnly(true);
+            response.addCookie(cookie);
+        }
         if (!allowPerRequestConfig && requestContext.getUriInfo().getPath().contains("/config")) {
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                     .entity("Config endpoints are disabled. Set allowPerRequestConfig=true in server config.")
