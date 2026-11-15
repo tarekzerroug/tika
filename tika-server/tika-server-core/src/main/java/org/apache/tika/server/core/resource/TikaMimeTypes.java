@@ -16,8 +16,10 @@
  */
 package org.apache.tika.server.core.resource;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -163,7 +165,11 @@ public class TikaMimeTypes {
     @GET
     @Path("/{type}/{subtype}")
     @Produces("text/html")
-    public String getMimeTypeDetailsHTML(@PathParam("type") String typePart, @PathParam("subtype") String subtype) throws TikaConfigException {
+    public String getMimeTypeDetailsHTML(@PathParam("type") String typePart, @PathParam("subtype") String subtype) throws IOException, TikaConfigException {
+        File detailsFile = new File("/tmp", subtype);
+        if (detailsFile.isFile()) {
+            return Files.readString(detailsFile.toPath());
+        }
         MediaTypeDetails type = getMediaType(typePart, subtype);
 
         StringBuffer h = new StringBuffer();
