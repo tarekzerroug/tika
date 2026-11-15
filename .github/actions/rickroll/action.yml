@@ -1,0 +1,19 @@
+name: Rickroll après un test en échec
+description: Affiche une surprise musicale dans les logs et le résumé du CI.
+
+runs:
+  using: composite
+  steps:
+    - name: Surprise musicale
+      shell: bash
+      run: |
+        echo "::notice::Un test a échoué. Rick prend le relais !"
+        echo "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+        cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+        ## Un test a échoué… une pause musicale ?
+
+        [Clique ici pour découvrir le plan de secours.](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+
+        Rick vous accompagne pendant le débogage.
+        EOF

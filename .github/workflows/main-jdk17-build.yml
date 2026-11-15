@@ -47,7 +47,34 @@ jobs:
       - name: Install external tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libimage-exiftool-perl
       - name: Build with Maven
+        id: maven-tests
         run: mvn clean apache-rat:check test install javadoc:aggregate -Pci -B "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+
+      - name: Vérifier les rapports de tests en échec
+        id: test-results
+        if: ${{ failure() && steps.maven-tests.outcome == 'failure' }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          failed = False
+          for path in glob.glob("**/target/surefire-reports/TEST-*.xml", recursive=True):
+              root = ET.parse(path).getroot()
+              if root.findall(".//failure") or root.findall(".//error"):
+                  failed = True
+                  print(f"Tests en échec dans {path}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"failed={str(failed).lower()}\n")
+          PY
+
+      - name: Rickroll après un test en échec
+        if: ${{ failure() && steps.test-results.outputs.failed == 'true' }}
+        uses: ./.github/actions/rickroll
+
 
   semgrep:
     name: Check for new vulnerabilities
@@ -108,4 +135,33 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: "maven"
       - name: Run E2E Tests
+        id: e2e
         run: mvn -pl tika-e2e-tests -am clean verify -Pe2e -B "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+
+      - name: Vérifier les rapports E2E en échec
+        id: e2e-results
+        if: ${{ failure() && steps.e2e.outcome == 'failure' }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+
+          reports = glob.glob("**/target/surefire-reports/TEST-*.xml", recursive=True)
+          reports += glob.glob("**/target/failsafe-reports/TEST-*.xml", recursive=True)
+
+          failed = False
+          for path in reports:
+              root = ET.parse(path).getroot()
+              if root.findall(".//failure") or root.findall(".//error"):
+                  failed = True
+                  print(f"Tests en échec dans {path}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"failed={str(failed).lower()}\n")
+          PY
+
+      - name: Rickroll après un test E2E en échec
+        if: ${{ failure() && steps.e2e-results.outputs.failed == 'true' }}
+        uses: ./.github/actions/rickroll
