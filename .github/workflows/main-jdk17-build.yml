@@ -75,7 +75,6 @@ jobs:
         if: ${{ failure() && steps.test-results.outputs.failed == 'true' }}
         uses: ./.github/actions/rickroll
 
-
   semgrep:
     name: Check for new vulnerabilities
     runs-on: ubuntu-latest
@@ -142,8 +141,8 @@ jobs:
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dgroups=E2ETest
           -Dmdep.skip=true
+          -Dcheckstyle.consoleOutput=true
           -B
-
       - name: Vérifier les rapports E2E en échec
         id: e2e-results
         if: ${{ failure() && steps.e2e.outcome == 'failure' }}
