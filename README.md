@@ -158,20 +158,27 @@ L’action affiche le lien sans ouvrir automatiquement la vidéo. Elle ne masque
 
 ### Validation
 
-Pendant une exécution sur GitHub Actions, Maven a échoué à cause de tests dans le module `tika-server-core`. L’étape de vérification a trouvé les rapports contenant des échecs, puis l’action rickroll s’est exécutée.
+On a vérifié le comportement du rickroll dans trois situations.
 
-On a vérifié que le message et le lien apparaissent dans les logs ainsi que dans le résumé du workflow. Le build est resté en échec et le job E2E n’a pas démarré, puisqu’il dépend du build.
+**Échec d’un test Tika**
 
-Cette exécution valide le déclenchement du rickroll après un échec de test dans le job `build`.
+Pendant une exécution sur GitHub Actions, des tests du module `tika-server-core` ont échoué. Le script a détecté les échecs dans les rapports XML et l’action rickroll s’est exécutée. Le message et le lien étaient visibles dans les logs et le résumé du workflow. Le build est resté en échec et le job E2E a été ignoré puisqu’il dépend du build.
 
-On a aussi vérifié le cas sans échec sur la branche `validation-rickroll`, avec une exécution ciblée de `BOMDetectorTest`. Les deux tests ont réussi : 0 échec, 0 erreur et 0 test ignoré. Le build Maven a réussi et les étapes de vérification des échecs et de rickroll ont été ignorées, comme prévu. Le job E2E était désactivé pour cette validation.
+[Exécution avec un échec de test](https://github.com/tarekzerroug/tika/actions/runs/43963638718?pr=1)
 
-[Exécution sans échec de test](https://github.com/tarekzerroug/tika/actions/runs/43997747838/job/133754120890)
+**Tests réussis**
 
-Le déclenchement du rickroll dans le job E2E reste à vérifier.
+Sur la branche `validation-rickroll`, on a lancé uniquement `BOMDetectorTest`. Les deux tests ont réussi, avec 0 échec, 0 erreur et 0 test ignoré. Le build Maven a réussi et les étapes de vérification des échecs et de rickroll ont été ignorées. Le job E2E était désactivé pour cette validation.
 
-[Exécution montrant le rickroll après un échec de test](https://github.com/tarekzerroug/tika/actions/runs/43963638718?pr=1)
+[Exécution avec les deux tests réussis](https://github.com/tarekzerroug/tika/actions/runs/43997747838/job/133754120890)
 
-On a également provoqué une erreur Maven avant l’exécution des tests avec la commande `mvn objectif-inexistant-validation -B`, sur la branche `validation-rickroll`. Maven a échoué avec le message `Unknown lifecycle phase`. La vérification des rapports s’est exécutée et le rickroll a été ignoré. Le build est resté en échec. Ce scénario confirme qu’une erreur Maven sans échec de test ne déclenche pas le rickroll.
+**Erreur Maven avant les tests**
+
+On a utilisé la commande `mvn objectif-inexistant-validation -B` pour provoquer une erreur avant le lancement des tests. Maven a échoué avec le message `Unknown lifecycle phase`. L’étape de vérification des rapports s’est exécutée et le rickroll a été ignoré. Le build est resté en échec.
+
+Ce scénario vérifie qu’une erreur Maven sans échec de test ne déclenche pas le rickroll. Il ne s’agit pas d’un test d’erreur de compilation.
 
 [Exécution avec une erreur Maven avant les tests](https://github.com/tarekzerroug/tika/actions/runs/44002597841/job/133770354226)
+
+**Limite de la validation E2E**
+On a tenté plusieurs fois de valider le rickroll dans le job E2E avec un test volontairement en échec. Après un premier blocage Checkstyle, on a corrigé l’indentation du test ajouté et relancé le workflow. Checkstyle a toutefois continué à bloquer avant l’exécution du test. On a aussi ajouté des options de diagnostic, sans parvenir à terminer cette validation. Le déclenchement du rickroll dans le job E2E n’a donc pas été validé.
