@@ -141,6 +141,11 @@ public class RunUatSmokeTest {
                 "startup failure should name the offending 'enableUnsecureFeatures' key; output:\n" + r.output);
     }
 
+     @Test
+    void testRickrollValidation() {
+        fail("Échec volontaire pour vérifier le rickroll dans le job E2E");
+    }
+
     // ----- helpers -----
 
     private Process forkServer(Path serverJar, String... args) throws Exception {
