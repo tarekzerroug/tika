@@ -162,6 +162,12 @@ Pendant une exécution sur GitHub Actions, Maven a échoué à cause de tests da
 
 On a vérifié que le message et le lien apparaissent dans les logs ainsi que dans le résumé du workflow. Le build est resté en échec et le job E2E n’a pas démarré, puisqu’il dépend du build.
 
-Cette exécution valide le déclenchement du rickroll après un échec de test dans le job `build`. Le déclenchement dans le job E2E et le cas où tous les tests réussissent restent à vérifier.
+Cette exécution valide le déclenchement du rickroll après un échec de test dans le job `build`.
+
+On a aussi vérifié le cas sans échec sur la branche `validation-rickroll`, avec une exécution ciblée de `BOMDetectorTest`. Les deux tests ont réussi : 0 échec, 0 erreur et 0 test ignoré. Le build Maven a réussi et les étapes de vérification des échecs et de rickroll ont été ignorées, comme prévu. Le job E2E était désactivé pour cette validation.
+
+[Exécution sans échec de test](https://github.com/tarekzerroug/tika/actions/runs/43997747838/job/133754120890)
+
+Le déclenchement du rickroll dans le job E2E reste à vérifier.
 
 [Exécution montrant le rickroll après un échec de test](https://github.com/tarekzerroug/tika/actions/runs/43963638718?pr=1)
