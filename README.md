@@ -188,3 +188,17 @@ On a tenté plusieurs fois de valider le rickroll dans le job E2E avec un test v
 On a comparé les rapports `before.json` et `after.json` avec les couples règle Semgrep/fichier. On retrouve sept nouveaux couples, correspondant aux vulnérabilités documentées dans la partie précédente. Aucun couple du rapport initial n’est absent du rapport final.
 
 Les deux rapports contiennent le même avertissement `PartialParsing` dans `PipesParsingHelper.java`, aux lignes 226–227 et 606. L’analyse de ce fichier est donc partielle. Cet avertissement était déjà présent avant les modifications et ne concerne aucun des sept fichiers modifiés pour introduire les vulnérabilités.
+
+### Ajustement de MetadataResource et scan complémentaire
+
+Le build a révélé un échec dans `StackTraceTest.testEmptyParser` : `/meta` renvoyait 500 au lieu de 200 pour un document FDF. La désérialisation ajoutée était appliquée à tous les documents reçus.
+
+On a ajusté `getMetadata()` pour appliquer la désérialisation uniquement lorsque la requête indique `Content-Type: application/x-java-serialized-object`. Les autres documents suivent le traitement initial. La vulnérabilité reste présente puisque le client contrôle cet en-tête et que `readObject()` est appelé sans filtre de désérialisation.
+
+Un scan ciblé confirme que Semgrep détecte toujours `object-deserialization` à la ligne 103, sans erreur d’analyse.
+
+Après cet ajustement, le module `tika-server-core` passe avec succès. Le build complet échoue ensuite dans `S3PipeIntegrationTest`, pendant la préparation de l’environnement Docker : le téléchargement de `quay.io/minio/minio:latest` renvoie `401 UNAUTHORIZED`. Le rickroll se déclenche après cette erreur et le job E2E est ignoré puisque le build a échoué.
+
+Un scan complémentaire de tout le dépôt retrouve 23 détections. Les couples règle/fichier sont identiques à ceux du rapport `after.json`. Le nouveau scan est conservé dans `semgrep-reports/validation-ci/after-actualise.json`.
+
+Ce scan contient 58 avertissements. Les premiers concernent des exemples JSON dans `docs/`. Pour `claude-vlm-basic.json`, on a confirmé qu’un lien symbolique Git est représenté localement par un fichier contenant le chemin de sa cible. Semgrep tente alors d’analyser ce chemin comme du JSON. On n’a pas vérifié individuellement les 58 avertissements.
