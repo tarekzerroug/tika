@@ -195,9 +195,9 @@ Le build a révélé un échec dans `StackTraceTest.testEmptyParser` : `/meta` r
 
 On a ajusté `getMetadata()` pour appliquer la désérialisation uniquement lorsque la requête indique `Content-Type: application/x-java-serialized-object`. Les autres documents suivent le traitement initial. La vulnérabilité reste présente puisque le client contrôle cet en-tête et que `readObject()` est appelé sans filtre de désérialisation.
 
-Un scan ciblé confirme que Semgrep détecte toujours `object-deserialization` à la ligne 103, sans erreur d’analyse.
+La description nº 5 et le rapport `after.json` correspondent à la première version de cette vulnérabilité, détectée à la ligne 100. Après cet ajustement, un scan ciblé confirme que Semgrep détecte toujours `object-deserialization`, désormais à la ligne 103, sans erreur d’analyse.
 
-Après cet ajustement, le module `tika-server-core` passe avec succès. Le build complet échoue ensuite dans `S3PipeIntegrationTest`, pendant la préparation de l’environnement Docker : le téléchargement de `quay.io/minio/minio:latest` renvoie `401 UNAUTHORIZED`. Le rickroll se déclenche après cette erreur et le job E2E est ignoré puisque le build a échoué.
+Après la modification, le module `tika-server-core` passe avec succès. Le build complet échoue ensuite dans `S3PipeIntegrationTest`, pendant la préparation de l’environnement Docker : le téléchargement de `quay.io/minio/minio:latest` renvoie `401 UNAUTHORIZED`. Le rickroll se déclenche après cette erreur et le job E2E est ignoré puisque le build a échoué.
 
 Un scan complémentaire de tout le dépôt retrouve 23 détections. Les couples règle/fichier sont identiques à ceux du rapport `after.json`. Le nouveau scan est conservé dans `semgrep-reports/validation-ci/after-actualise.json`.
 
