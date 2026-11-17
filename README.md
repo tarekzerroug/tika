@@ -182,3 +182,9 @@ Ce scénario vérifie qu’une erreur Maven sans échec de test ne déclenche pa
 
 **Limite de la validation E2E**
 On a tenté plusieurs fois de valider le rickroll dans le job E2E avec un test volontairement en échec. Après un premier blocage Checkstyle, on a corrigé l’indentation du test ajouté et relancé le workflow. Checkstyle a toutefois continué à bloquer avant l’exécution du test. On a aussi ajouté des options de diagnostic, sans parvenir à terminer cette validation. Le déclenchement du rickroll dans le job E2E n’a donc pas été validé.
+
+### Vérification des rapports avant et après
+
+On a comparé les rapports `before.json` et `after.json` avec les couples règle Semgrep/fichier. On retrouve sept nouveaux couples, correspondant aux vulnérabilités documentées dans la partie précédente. Aucun couple du rapport initial n’est absent du rapport final.
+
+Les deux rapports contiennent le même avertissement `PartialParsing` dans `PipesParsingHelper.java`, aux lignes 226–227 et 606. L’analyse de ce fichier est donc partielle. Cet avertissement était déjà présent avant les modifications et ne concerne aucun des sept fichiers modifiés pour introduire les vulnérabilités.
