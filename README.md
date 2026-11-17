@@ -171,3 +171,7 @@ On a aussi vérifié le cas sans échec sur la branche `validation-rickroll`, av
 Le déclenchement du rickroll dans le job E2E reste à vérifier.
 
 [Exécution montrant le rickroll après un échec de test](https://github.com/tarekzerroug/tika/actions/runs/43963638718?pr=1)
+
+On a également provoqué une erreur Maven avant l’exécution des tests avec la commande `mvn objectif-inexistant-validation -B`, sur la branche `validation-rickroll`. Maven a échoué avec le message `Unknown lifecycle phase`. La vérification des rapports s’est exécutée et le rickroll a été ignoré. Le build est resté en échec. Ce scénario confirme qu’une erreur Maven sans échec de test ne déclenche pas le rickroll.
+
+[Exécution avec une erreur Maven avant les tests](https://github.com/tarekzerroug/tika/actions/runs/44002597841/job/133770354226)
