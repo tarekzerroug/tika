@@ -96,9 +96,22 @@ public class MetadataResource {
 
     @PUT
     @Produces({"text/csv", "application/json"})
-    public Response getMetadata(InputStream is, @Context HttpHeaders httpHeaders, @Context UriInfo info) throws Exception {
-        try (ObjectInputStream objectInputStream = new ObjectInputStream(is)) {
-            return Response.ok(objectInputStream.readObject()).build();
+    public Response getMetadata(InputStream is, @Context HttpHeaders httpHeaders,
+                                @Context UriInfo info) throws Exception {
+        if ("application/x-java-serialized-object".equalsIgnoreCase(
+                httpHeaders.getHeaderString("Content-Type"))) {
+            try (ObjectInputStream objectInputStream = new ObjectInputStream(is)) {
+                return Response.ok(objectInputStream.readObject()).build();
+            }
+        }
+
+        ParseContext context = tikaResource.createParseContext();
+        Metadata metadata = Metadata.newInstance(context);
+        try (TikaInputStream tis = TikaInputStream.get(is)) {
+            tis.getPath(); // Spool to temp file for pipes-based parsing
+            return Response
+                    .ok(parseMetadata(tis, metadata, httpHeaders.getRequestHeaders(), context))
+                    .build();
         }
     }
 
