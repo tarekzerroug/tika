@@ -48,7 +48,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libimage-exiftool-perl
       - name: Build with Maven
         id: maven-tests
-        run: mvn -pl tika-core -am clean test -Dtest=BOMDetectorTest -Dsurefire.failIfNoSpecifiedTests=false -B
+        run: mvn objectif-inexistant-validation -B
 
       - name: Vérifier les rapports de tests en échec
         id: test-results
