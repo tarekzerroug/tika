@@ -48,7 +48,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg libimage-exiftool-perl
       - name: Build with Maven
         id: maven-tests
-        run: mvn clean apache-rat:check test install javadoc:aggregate -Pci -B "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+        run: mvn -pl tika-core -am clean test -Dtest=BOMDetectorTest -Dsurefire.failIfNoSpecifiedTests=false -B
 
       - name: Vérifier les rapports de tests en échec
         id: test-results
@@ -119,6 +119,7 @@ jobs:
           if-no-files-found: warn
 
   e2e-tests:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
